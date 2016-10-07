@@ -1,14 +1,15 @@
 #include <linux/fs.h>
 #include <linux/miscdevice.h>
 #include <linux/module.h>
+#include <linux/slab.h>
 #include <linux/uaccess.h>
 
 /* Include the data-structures shared between user and kernel */
 #include "km-session.h"
 
-/* Local statically allocated buffer */
+/* Local dynamically allocated buffer */
 #define storage_size 1024
-static char storage[storage_size];
+static char *storage;
 
 static ssize_t km_session_read(struct file *filep, char __user *user_buf,
 			       size_t size, loff_t *offset)
@@ -103,6 +104,11 @@ static int __init initialize(void)
 {
 	printk("Hello world!\n");
 
+	/* kmalloc only allocates memory while kzalloc also zero it out */
+	storage = kzalloc(storage_size, GFP_KERNEL);
+	if (!storage)
+		return -ENOMEM;
+
 	return misc_register(&km_session_miscdev);
 }
 
@@ -110,7 +116,7 @@ static int __init initialize(void)
 static void __exit finalize(void)
 {
 	misc_deregister(&km_session_miscdev);
-
+	kfree(storage);
 	printk("Bye world!\n");
 }
 
