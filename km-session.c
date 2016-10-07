@@ -6,6 +6,27 @@
 /* Include the data-structures shared between user and kernel */
 #include "km-session.h"
 
+/* Local statically allocated buffer */
+#define storage_size 1024
+static char storage[storage_size];
+
+static ssize_t km_session_read(struct file *filep, char __user *user_buf,
+			       size_t size, loff_t *offset)
+{
+	printk("User-space is reading\n");
+	return simple_read_from_buffer(user_buf, size, offset, storage,
+				       storage_size);
+}
+
+static ssize_t
+km_session_write(struct file *filep, const char __user *user_buf,
+		 size_t size, loff_t *offset)
+{
+	printk("User-space is writing\n");
+	return simple_write_to_buffer(storage, storage_size, offset,
+				      user_buf, size);
+}
+
 /* Called when ioctl(fd, cmd, data) is called from user-space */
 static long
 km_session_ioctl(struct file *file, unsigned int cmd, unsigned long data)
@@ -60,6 +81,8 @@ km_session_ioctl(struct file *file, unsigned int cmd, unsigned long data)
 /* File system operations against the misc device */
 const struct file_operations km_session_fops = {
 	.unlocked_ioctl = km_session_ioctl,
+	.read = km_session_read,
+	.write = km_session_write,
 };
 
 /*
