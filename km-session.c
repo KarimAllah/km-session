@@ -1,12 +1,58 @@
 #include <linux/fs.h>
 #include <linux/miscdevice.h>
 #include <linux/module.h>
+#include <linux/uaccess.h>
+
+/* Include the data-structures shared between user and kernel */
+#include "km-session.h"
 
 /* Called when ioctl(fd, cmd, data) is called from user-space */
 static long
 km_session_ioctl(struct file *file, unsigned int cmd, unsigned long data)
 {
-	printk("ioctl called with cmd: %x\n", cmd);
+	/* In real-life you should not blindly trust data coming from user-space! */
+
+	printk("Dispatching for cmd 0x%x\n", cmd);
+
+	/*
+	 * The proper way to encode cmd values is through _IO*(type,nr,size)
+	 * family, but for the sake of simplicity just hard-code it
+	 */
+	switch (cmd) {
+	case 0x10: {
+		struct cmd_0_data cmd_data;
+
+		if (copy_from_user(&cmd_data, (void *)data, sizeof(cmd_data)))
+			return -EFAULT;
+
+		printk("value: %x\n", cmd_data.value);
+
+		break;
+	}
+	case 0x20: {
+		struct cmd_1_data cmd_data;
+
+		if (copy_from_user(&cmd_data, (void *)data, sizeof(cmd_data)))
+			return -EFAULT;
+
+		printk("value: %lx\n", cmd_data.value);
+
+		break;
+	}
+	case 0x30: {
+		struct cmd_2_data cmd_data;
+
+		if (copy_from_user(&cmd_data, (void *)data, sizeof(cmd_data)))
+			return -EFAULT;
+
+		printk("name: %s\n", cmd_data.name);
+
+		break;
+	}
+	default:
+		printk("Unknown command\n");
+		return -EINVAL;
+	}
 
 	return 0;
 }
